@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BioRunner — Vigilância Sanitária</title>
+<style>
+  :root{ --bg:#87CEEB; --ground:#6B8E23; --panel: rgba(255,255,255,0.85);}
+  html,body{height:100%;margin:0;font-family:Inter, Arial, sans-serif;background:var(--bg);}
+  #gameWrapper{display:flex;align-items:center;justify-content:center;height:100vh;}
+  canvas{background:linear-gradient(#87CEEB,#bde7ff);border-radius:8px;display:block;box-shadow:0 8px 30px rgba(0,0,0,0.2);}
+  .hud{position:absolute;left:20px;top:18px;color:#111;font-weight:700;text-shadow:0 1px 0 #fff;}
+  .title{position:absolute;left:50%;transform:translateX(-50%);top:18px;font-weight:700;color:#073642}
+  .controls{position:fixed;right:20px;bottom:20px;display:flex;gap:10px;}
+  .btn{background:var(--panel);border-radius:10px;padding:12px 16px;box-shadow:0 4px 12px rgba(0,0,0,0.15);font-weight:700;cursor:pointer;}
+  .overlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--panel);padding:24px;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,0.3);text-align:center;min-width:260px;}
+  .hidden{display:none;}
+  footer{position:fixed;left:8px;bottom:8px;font-size:12px;color:#012;}
+</style>
+</head>
+<body>
+<div id="gameWrapper">
+  <canvas id="gameCanvas" width="900" height="420"></canvas>
+  <div class="hud" id="hud">Pontuação: 0</div>
+  <div class="title">BioRunner — Vigilância Sanitária</div>
+  <div id="menu" class="overlay">
+    <h2>BioRunner</h2>
+    <p>Corra e pule para ajudar a Vigilância Sanitária!</p>
+    <button id="startBtn" class="btn">Jogar</button>
+  </div>
+  <div id="gameOver" class="overlay hidden">
+    <h2>Fim de Jogo</h2>
+    <p id="finalScore">Pontuação: 0</p>
+    <button id="restartBtn" class="btn">Reiniciar</button>
+  </div>
+</div>
+<div class="controls" id="mobileControls"></div>
+<footer>BioRunner — Vigilância Sanitária</footer>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W = canvas.width;
+let H = canvas.height;
+let gameSpeed=5, gravity=1.0, playing=false, score=0;
+class Player{
+  constructor(){this.w=50;this.h=50;this.x=60;this.y=H-this.h-30;this.vy=0;this.jumpForce=18;this.grounded=true;}
+  update(){
+    if(this.y + this.h < H-30){this.vy+=gravity;this.grounded=false;}else{this.vy=0;this.grounded=true;this.y=H-this.h-30;}
+    this.y+=this.vy;
+    this.draw();
+  }
+  jump(){if(this.grounded && playing){this.vy=-this.jumpForce;}}
+  draw(){ctx.fillStyle='red';ctx.fillRect(this.x,this.y,this.w,this.h);}
+}
+class Obstacle{
+  constructor(){
+    this.w=30;this.h=30;this.x=W+20;this.y=H-this.h-30;
+  }
+  update(){this.x-=gameSpeed;this.draw();}
+  draw(){ctx.fillStyle='green';ctx.fillRect(this.x,this.y,this.w,this.h);}
+}
+const player=new Player();
+let objects=[];let frame=0;
+const hud=document.getElementById('hud');
+const menu=document.getElementById('menu');
+const startBtn=document.getElementById('startBtn');
+const restartBtn=document.getElementById('restartBtn');
+const gameOver=document.getElementById('gameOver');
+const finalScore=document.getElementById('finalScore');
+startBtn.onclick=startGame;
+restartBtn.onclick=()=>{resetGame();startGame();};
+window.addEventListener('keydown',e=>{ if(e.key===' ' || e.key==='ArrowUp'){player.jump();}});
+function loop(){
+  ctx.clearRect(0,0,W,H);
+  drawGround();
+  player.update();
+  if(frame%80===0) objects.push(new Obstacle());
+  for(let i=objects.length-1;i>=0;i--){let o=objects[i];o.update();
+    if(collide(player,o)){endGame();return;}
+    if(o.x+o.w<0){objects.splice(i,1);score++;}
+  }
+  hud.textContent='Pontuação: '+score;
+  frame++;
+  if(playing) requestAnimationFrame(loop);
+}
+function drawGround(){ctx.fillStyle='#6B8E23';ctx.fillRect(0,H-30,W,30);}
+function collide(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+function startGame(){menu.classList.add('hidden');playing=true;objects=[];frame=0;score=0;requestAnimationFrame(loop);} 
+function endGame(){playing=false;finalScore.textContent='Pontuação: '+score;gameOver.classList.remove('hidden');}
+function resetGame(){playing=false;objects=[];score=0;frame=0;menu.classList.remove('hidden');gameOver.classList.add('hidden');hud.textContent='Pontuação: 0';}
+resetGame();
+</script>
+</body>
+</html>
